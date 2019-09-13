@@ -39,3 +39,8 @@ luac.out
 *.x86_64
 *.hex
 
+# MacOS specific
+.DS_Store
+
+# 3rd party Lua files
+relabel.lua
