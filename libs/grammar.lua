@@ -1,8 +1,8 @@
 --
 --------------------------------------------------------------------------------
---         File:  main.lua
+--         File:  grammar.lua
 --
---        Usage:  ./main.lua
+--        Usage:  ./grammar.lua
 --
 --  Description:  
 --
@@ -13,29 +13,22 @@
 --       Author:  YOUR NAME (), <>
 -- Organization:  
 --      Version:  0.0.0
--- doc DD/MM/YY:  13/09/19
+-- doc DD/MM/YY:  19/09/19
 --     Revision:  ---
 --------------------------------------------------------------------------------
 --
 
-require 'polyfill'
-local grammar = require 'grammar'
-
-local pretty_print = (require 'pretty-print').prettyPrint
---[[
 local peg = require 'lpeglabel'
 local re = require 'relabel'
 
-local pretty_print = (require 'pretty-print').prettyPrint
-
 
 local function identifier(val)
-  print('id', val)
+  print('id = '..val)
   return {type = 'identifier', val = val}
 end
 
 local function number(val)
-  print('num', val)
+  print('num = '..val)
   return {type = 'number', val = val}
 end
 
@@ -89,36 +82,5 @@ local id = identifier_token / identifier
 local white = whitespace_token / whitespace
 
 local grammar = white + num + id
---]]
 
-local function parse_chunk(args)
-  local rest = args.rest
-  local last_i = args.i
-  local result, error, position = grammar:match(rest)
-  if error then
-    local input = args.input
-    local line, col = re.calcline(input, last_i + position)
-    return { error = error, line = line, col = col } 
-  end
-  local len = result.val:len()
-  local i = len + 1
-  return { result = result, rest = string.sub(rest, i), i = last_i + len }
-end
-
-local function program(input)
-    local result = parse_chunk({ rest = input, i = 0, input = input })
-    local acc = {}
-    while result.rest ~= '' do
-      table.insert(acc, result.result)
-      local rest = result.rest
-      local i = result.i
-      result = parse_chunk({ rest = rest, i = i, input = input })
-      if result.error ~= nil then
-        return result
-      end 
-    end
-    return acc
-end
-
-
-pretty_print(program([[  2x    10x1fe1 da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 2 f 0x1fe1d 10.1 0xff 10.1e10 -sdf выаыв  sdf -10 -10.8 -0x1fe -10.10e10]]))
+return grammar
