@@ -31,8 +31,8 @@ local function parse_chunk(grammar, args)
   local result, error, position = grammar:match(rest)
   if error then
     local input = args.input
-    local line, col = re.calcline(input, last_i + position)
-    return { error = error, line = line, col = col, result = {} }
+    local line, col = re.calcline(input, last_i + position - 1)
+    return { error = error == 'fail' and 'unexpected token' or error, line = line, col = col, result = {} }
   end
   local len = result.val:len()
   local i = len + 1
@@ -90,7 +90,7 @@ end
 
 
 pretty_print(program([[
-   2x [this is a template literal] 10x1fe1   da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
+   2x  [this is a template literal] 10x1fe1    da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
      2 f 0x1fe1d 10.1 0xff 10.1e10 -sdf выаыв  sdf 
      -10 -10.8 -0x1fe -10.10e10
 ]]))

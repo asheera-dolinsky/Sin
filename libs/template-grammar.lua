@@ -22,7 +22,7 @@ local peg = require 'lpeglabel'
 local re = require 'relabel'
 
 
-local function char_transformer(val)
+local function segment_transformer(val)
   print('segment = '..val)
   return {type = 'segment', val = val}
 end
@@ -42,11 +42,11 @@ local match_all = re.compile '.'
 
 -- combinators
 local delimiter_tokens = right_brace_token
-local char_token = (match_all - (delimiter_tokens + -1)) ^ 1
+local segment_token = (match_all - (delimiter_tokens + -1)) ^ 1
 
-local char = char_token / char_transformer
-local rb = right_brace_token / right_brace_transformer
+local segment = segment_token / segment_transformer
+local right_brace = right_brace_token / right_brace_transformer
 
-local grammar = rb + char
+local grammar = right_brace + segment
 
 return grammar
