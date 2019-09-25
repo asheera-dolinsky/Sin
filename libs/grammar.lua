@@ -4,14 +4,14 @@
 --
 --        Usage:  ./grammar.lua
 --
---  Description:  
+--  Description:
 --
 --      Options:  ---
 -- Requirements:  ---
 --         Bugs:  ---
 --        Notes:  ---
 --       Author:  YOUR NAME (), <>
--- Organization:  
+-- Organization:
 --      Version:  0.0.0
 -- doc DD/MM/YY:  19/09/19
 --     Revision:  ---
@@ -30,6 +30,11 @@ end
 local function number(val)
   print('num = '..val)
   return {type = 'number', val = val}
+end
+
+local function left_brace_transformer(val)
+  print('left brace = '..val)
+  return {type = 'left_brace', val = val}
 end
 
 local function whitespace(val)
@@ -79,8 +84,9 @@ local identifier_token = (match_all - (whitespace_token + delimiter_tokens + -1)
 
 local num = number_token / number
 local id = identifier_token / identifier
+local lb = left_brace / left_brace_transformer
 local white = whitespace_token / whitespace
 
-local grammar = white + num + id
+local grammar = white + lb + num + id
 
 return grammar
