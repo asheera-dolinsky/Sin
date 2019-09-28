@@ -89,7 +89,7 @@ local number_token = ((dash ^ -1) * (hexadecimal_token + decimal_token)) * #(whi
 local identifier_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
 
 
-local whitespace = whitespace_token / whitespace_transformer
+local whitespace = whitespace_token / whitespace_transformer / ignored_transformer
 local left_brace = left_brace_token / left_brace_transformer
 local number = number_token / number_transformer
 local identifier = identifier_token / identifier_transformer

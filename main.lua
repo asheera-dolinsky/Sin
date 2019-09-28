@@ -26,27 +26,26 @@ local pretty_print = (require 'pretty-print').prettyPrint
 
 
 local function parse_chunk(grammar, args)
-  local rest = args.rest
-  local last_i = args.i
-  local result, error, position = grammar:match(rest)
+  local result, error, position = grammar:match(args.rest)
   if error then
-    local input = args.input
-    local line, col = re.calcline(input, last_i + position - 1)
+    local line, col = re.calcline(args.input, args.i + position)
     return { error = error == 'fail' and 'unexpected token' or error, line = line, col = col, result = {} }
   end
   local len = result.val:len()
   local i = len + 1
-  return { result = result, rest = string.sub(rest, i), i = last_i + len }
+  return { result = result, rest = string.sub(args.rest, i), i = args.i + len }
 end
 
+local parsers = {
+  program = {},
+  template = {}
+}
+
 local function template(args)
-  local input = args.input
   local acc = {}
   local state = { rest = args.rest, i = args.i }
   repeat
-    local rest = state.rest
-    local i = state.i
-    state = parse_chunk(template_grammar, { rest = rest, i = i, input = input })
+    state = parse_chunk(template_grammar, { rest = state.rest, i = state.i, input = args.input })
     --[[
     local parser = parsers[result.type]
     if parser ~= nil then
@@ -62,20 +61,16 @@ local function template(args)
     end
     table.insert(acc, state.result)
   until state.rest == ''
-  local line, col = re.calcline(input, args.i)
+  local line, col = re.calcline(args.input, args.i)
   return { error = 'non-delimited template literal', line = line, col = col, result = {} }
 end
 
-local parsers = {
-  ['left_brace'] = template
-}
-
 local function program(input)
   local acc = {}
-  local state = { rest = input, i = 0 }
+  local state = { rest = input, i = 1 }
   repeat
     state = parse_chunk(grammar, { rest = state.rest, i = state.i, input = input })
-    local parser = parsers[state.result.type]
+    local parser = parsers.program[state.result.type]
     if parser ~= nil then
       print('template')
       state = parser({ rest = state.rest, i = state.i, input = input, opener = state.result })
@@ -83,11 +78,12 @@ local function program(input)
     if state.error ~= nil then
       return state
     end
-    table.insert(acc, state.result)
+    if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
   until state.rest == ''
   return acc
 end
 
+parsers.program.left_brace = template
 
 pretty_print(program([[
    2x  [this is a template literal] 10x1fe1    da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
