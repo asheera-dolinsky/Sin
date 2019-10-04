@@ -19,10 +19,12 @@
 --
 
 require 'polyfill'
-local grammar = require 'grammar'
-local template_grammar = require 'template-grammar'
+
 local re = require 'relabel'
 local pretty_print = (require 'pretty-print').prettyPrint
+
+local grammar = require 'grammar'
+local template_grammar = require 'template-grammar'
 
 
 local function parse_chunk(grammar, args)
@@ -38,7 +40,8 @@ end
 
 local parsers = {
   program = {},
-  template = {}
+  template = {},
+  call = {}
 }
 
 local function template(args)
@@ -65,15 +68,15 @@ local function template(args)
   return { error = 'non-delimited template literal', line = line, col = col, result = {} }
 end
 
-local function program(input)
+local function program(args)
   local acc = {}
-  local state = { rest = input, i = 1 }
+  local state = { rest = args.input, i = 1 }
   repeat
-    state = parse_chunk(grammar, { rest = state.rest, i = state.i, input = input })
+    state = parse_chunk(grammar.grammar, { rest = state.rest, i = state.i, input = args.input })
     local parser = parsers.program[state.result.type]
     if parser ~= nil then
       print('template')
-      state = parser({ rest = state.rest, i = state.i, input = input, opener = state.result })
+      state = parser({ rest = state.rest, i = state.i, input = args.input, port = state.result })
     end
     if state.error ~= nil then
       return state
@@ -85,9 +88,22 @@ end
 
 parsers.program.left_brace = template
 
-pretty_print(program([[
+local input = [[
+  \f!
+  print!
    2x  [this is a template literal] 10x1fe1    da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
-     2 f 0x1fe1d 10.1 0xff 10.1e10 -sdf выаыв  sdf 
+     2 predicate? f 0x1fe1d 10.1 0xff 10.1e10 -sdf выаыв  sdf 
      -10 -10.8 -0x1fe -10.10e10
-]]))
+g!]]
+
+local function construct(args) end
+
+local constructs = {
+  ['for'] = nil
+}
+
+pretty_print(program {
+  input = input,
+  constructs = constructs
+})
 

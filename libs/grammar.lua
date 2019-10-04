@@ -22,6 +22,11 @@ local peg = require 'lpeglabel'
 local re = require 'relabel'
 
 
+local function call_transformer(val)
+  print('call = '..val)
+  return {type = 'call', clean = string.sub(val, 2, #val), val = val}
+end
+
 local function identifier_transformer(val)
   print('id = '..val)
   return {type = 'identifier', val = val}
@@ -37,6 +42,17 @@ local function left_brace_transformer(val)
   return {type = 'left_brace', val = val}
 end
 
+local function right_brace_transformer(val)
+  print('right brace = '..val)
+  return {type = 'right_brace', val = val}
+end
+
+local function semicolon_transformer(val)
+  print('semicolon = '..val)
+  return {type = 'semicolon', val = val}
+end
+
+
 local function whitespace_transformer(val)
   return {type = 'whitespace', val = val}
 end
@@ -50,13 +66,13 @@ end
 
 -- delimiters
 local ws = re.compile '%s'
-local left_paren = peg.P '('
-local right_paren = peg.P ')'
+local left_paren_token = peg.P '('
+local right_paren_token = peg.P ')'
 local left_brace_token = peg.P '['
-local right_brace = peg.P ']'
-local left_curly = peg.P '{'
-local right_curly = peg.P '}'
-local semicolon = peg.P ';'
+local right_brace_token = peg.P ']'
+local left_curly_token = peg.P '{'
+local right_curly_token = peg.P '}'
+local semicolon_token = peg.P ';'
 
 -- special tokens
 local digit = peg.R '09'
@@ -64,6 +80,8 @@ local dot = peg.P '.'
 local dash = peg.P '-'
 local apostrophe = peg.P "'"
 local exclamation = peg.P '!'
+local forward_slash = peg.P [[\]]
+local question = peg.P '?'
 local match_all = re.compile '.'
 local hexadecimal_signifier = peg.P '0x'
 local lowercase_a2f = peg.R 'af'
@@ -72,13 +90,13 @@ local lowercase_e = peg.P 'e'
 local uppercase_e = peg.P 'E'
 
 -- combinators
-local delimiter_tokens = left_paren +
-right_paren +
-left_brace_token +
-right_brace +
-left_curly +
-right_curly +
-semicolon
+local delimiter_tokens = left_paren_token +
+  right_paren_token +
+  left_brace_token +
+  right_brace_token +
+  left_curly_token +
+  right_curly_token +
+  semicolon_token
 
 local whitespace_token = ws ^ 1
 
@@ -87,13 +105,21 @@ local hexadecimal_token = hexadecimal_signifier * ((digit + lowercase_a2f + uppe
 local number_token = ((dash ^ -1) * (hexadecimal_token + decimal_token)) * #(whitespace_token + delimiter_tokens + -1)
 
 local identifier_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
-
+local clean_call_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
+local call_token = forward_slash * clean_call_token
 
 local whitespace = whitespace_token / whitespace_transformer / ignored_transformer
 local left_brace = left_brace_token / left_brace_transformer
 local number = number_token / number_transformer
 local identifier = identifier_token / identifier_transformer
+local call = call_token / call_transformer
 
-local grammar = whitespace + left_brace + number + identifier
+local grammar = whitespace + left_brace + number + call + identifier
 
-return grammar
+return {
+  grammar = grammar,
+  match_all = match_all,
+  right_brace_token = right_brace_token,
+  right_brace = right_brace_token / right_brace_transformer,
+  semicolon = semicolon_token / semicolon_transformer
+}
