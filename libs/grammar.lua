@@ -20,14 +20,23 @@
 
 local peg = require 'lpeglabel'
 local re = require 'relabel'
+local utf8 = require 'utf8'
+local helpers = require 'helpers'
 
-
-local function call_transformer(val)
-  print('call = '..val)
-  return {type = 'call', clean = string.sub(val, 2, #val), val = val}
-end
 
 local function identifier_transformer(val)
+  local head = helpers.head(val)
+  if head == [[\]] then
+    local tail = helpers.tail(val)
+    print('call = '..val)
+    return {type = 'call', caller = tail, val = val}
+  end
+  if helpers.isupper(head) then
+    local tail = helpers.tail(val)
+    print('call = '..val)
+    local lower_head = utf8.lower(head)
+    return {type = 'call', caller = lower_head..tail, val = val}
+  end
   print('id = '..val)
   return {type = 'identifier', val = val}
 end
@@ -105,16 +114,13 @@ local hexadecimal_token = hexadecimal_signifier * ((digit + lowercase_a2f + uppe
 local number_token = ((dash ^ -1) * (hexadecimal_token + decimal_token)) * #(whitespace_token + delimiter_tokens + -1)
 
 local identifier_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
-local clean_call_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
-local call_token = forward_slash * clean_call_token
 
 local whitespace = whitespace_token / whitespace_transformer / ignored_transformer
 local left_brace = left_brace_token / left_brace_transformer
 local number = number_token / number_transformer
 local identifier = identifier_token / identifier_transformer
-local call = call_token / call_transformer
 
-local grammar = whitespace + left_brace + number + call + identifier
+local grammar = whitespace + left_brace + number + identifier
 
 return {
   grammar = grammar,

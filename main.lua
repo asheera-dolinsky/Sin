@@ -91,6 +91,7 @@ parsers.program.left_brace = template
 local input = [[
   \f!
   print!
+  For i v
    2x  [this is a template literal] 10x1fe1    da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
      2 predicate? f 0x1fe1d 10.1 0xff 10.1e10 -sdf выаыв  sdf 
      -10 -10.8 -0x1fe -10.10e10
