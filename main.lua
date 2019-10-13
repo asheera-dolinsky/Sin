@@ -24,13 +24,12 @@ local re = require 'relabel'
 local pretty_print = (require 'pretty-print').prettyPrint
 
 local grammar = require 'grammar'
-local template_grammar = require 'template-grammar'
 
 
 local function parse_chunk(grammar, args)
-  local result, error, position = grammar:match(args.rest)
+  local result, error = grammar:match(args.rest)
   if error then
-    local line, col = re.calcline(args.input, args.i + position)
+    local line, col = re.calcline(args.input, args.i)
     return { error = error == 'fail' and 'unexpected token' or error, line = line, col = col, result = {} }
   end
   local len = result.val:len()
@@ -38,44 +37,21 @@ local function parse_chunk(grammar, args)
   return { result = result, rest = string.sub(args.rest, i), i = args.i + len }
 end
 
+
 local parsers = {
   program = {},
-  template = {},
-  call = {}
+  list = {},
+  template = {}
 }
 
-local function template(args)
-  local acc = {}
-  local state = { rest = args.rest, i = args.i }
-  repeat
-    state = parse_chunk(template_grammar, { rest = state.rest, i = state.i, input = args.input })
-    --[[
-    local parser = parsers[result.type]
-    if parser ~= nil then
-      result = parser({ rest = rest, i = i, input = input })
-    end
-    --]]
-    if state.error ~= nil then
-      return state
-    end
-    if state.result.type == 'right_brace' then
-      acc.type = 'template'
-      return { result = acc, rest = state.rest, i = state.i }
-    end
-    table.insert(acc, state.result)
-  until state.rest == ''
-  local line, col = re.calcline(args.input, args.i)
-  return { error = 'non-delimited template literal', line = line, col = col, result = {} }
-end
 
 local function program(args)
   local acc = {}
-  local state = { rest = args.input, i = 1 }
+  local state = { rest = args.rest, i = args.i }
   repeat
-    state = parse_chunk(grammar.grammar, { rest = state.rest, i = state.i, input = args.input })
+    state = parse_chunk(grammar.program_grammar, { rest = state.rest, i = state.i, input = args.input })
     local parser = parsers.program[state.result.type]
     if parser ~= nil then
-      print('template')
       state = parser({ rest = state.rest, i = state.i, input = args.input, port = state.result })
     end
     if state.error ~= nil then
@@ -86,9 +62,69 @@ local function program(args)
   return acc
 end
 
+local function list(args)
+  local acc = {}
+  local state = { rest = args.rest, i = args.i }
+  repeat
+    state = parse_chunk(grammar.list_grammar, { rest = state.rest, i = state.i, input = args.input })
+    local parser = parsers.list[state.result.type]
+    if parser ~= nil then
+      state = parser({ rest = state.rest, i = state.i, input = args.input, port = state.result })
+    end
+    if state.error ~= nil then
+      return state
+    end
+    if state.result.type == 'right_paren' then
+      acc.type = 'list'
+      return { result = acc, rest = state.rest, i = state.i }
+    end
+    if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
+  until state.rest == ''
+  local line, col = re.calcline(args.input, args.i - 1)
+  return { error = 'non-delimited list', line = line, col = col, result = {} }
+end
+
+local function template(args)
+  local acc = {}
+  local state = { rest = args.rest, i = args.i }
+  repeat
+    state = parse_chunk(grammar.template_grammar, { rest = state.rest, i = state.i, input = args.input })
+    -- placeholder here
+    if state.error ~= nil then
+      return state
+    end
+    if state.result.type == 'right_brace' then
+      acc.type = 'template'
+      return { result = acc, rest = state.rest, i = state.i }
+    end
+    table.insert(acc, state.result)
+  until state.rest == ''
+  local line, col = re.calcline(args.input, args.i - 1)
+  return { error = 'non-delimited template literal', line = line, col = col, result = {} }
+end
+
+
 parsers.program.left_brace = template
+parsers.program.left_paren = list
+parsers.list.left_paren = list
+parsers.list.left_brace = template
+
+
+local function parse(args)
+  return program {
+    rest = args.input,
+    input = args.input,
+    i = 1
+  }
+end
+
 
 local input = [[
+
+ ЫЫЫЫЫ
+
+     (    (x))
+  'this-is-a-quotation
   \f!
   print!
   For i v
@@ -97,14 +133,8 @@ local input = [[
      -10 -10.8 -0x1fe -10.10e10
 g!]]
 
-local function construct(args) end
 
-local constructs = {
-  ['for'] = nil
-}
-
-pretty_print(program {
-  input = input,
-  constructs = constructs
+pretty_print(parse {
+  input = input
 })
 
