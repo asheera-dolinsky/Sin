@@ -49,7 +49,7 @@ local function parse_chunk(lexicon, input, i, rest, acc)
     local line, col = re.calcline(input, i)
     return {
       type = 'error',
-      val = error == 'fail' and 'unexpected token',
+      val = 'unexpected token',
       line = line,
       col = col
     }
@@ -57,6 +57,7 @@ local function parse_chunk(lexicon, input, i, rest, acc)
   local len = result.val:len()
   return acc.continuation(input, i + len, string.sub(rest, len + 1), result, acc)
 end
+
 local function program(input, i, rest, result, acc)
   if rest == '' then return acc end
   -- cps this v
