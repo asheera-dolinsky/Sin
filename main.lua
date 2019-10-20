@@ -26,8 +26,8 @@ local pretty_print = (require 'pretty-print').prettyPrint
 local grammar = require 'grammar'
 
 
-local function parse_chunk(grammar, args)
-  local result, error = grammar:match(args.rest)
+local function parse_chunk_old(lexicon, args)
+  local result, error = lexicon:match(args.rest)
   if error then
     local line, col = re.calcline(args.input, args.i)
     return { error = error == 'fail' and 'unexpected token' or error, line = line, col = col, result = {} }
@@ -43,10 +43,8 @@ local parsers = {
   template = {}
 }
 
-local cps = {}
-
-cps.parse_chunk = function(continuation, grammar, input, i, rest, acc)
-  local result, error = grammar:match(rest)
+local function parse_chunk(lexicon, input, i, rest, acc)
+  local result, error = lexicon:match(rest)
   if error then
     local line, col = re.calcline(input, i)
     return {
@@ -57,19 +55,21 @@ cps.parse_chunk = function(continuation, grammar, input, i, rest, acc)
     }
   end
   local len = result.val:len()
-  return continuation(input, i + len, string.sub(rest, len + 1), result, acc)
+  return acc.continuation(input, i + len, string.sub(rest, len + 1), result, acc)
 end
-cps.program = function(input, i, rest, result, acc)
+local function program(input, i, rest, result, acc)
   if rest == '' then return acc end
+  -- cps this v
   local parser = parsers.program[result.type]
   if parser == nil then
     if result.type ~= 'ignored' then table.insert(acc, result) end
-    return cps.parse_chunk(cps.program, grammar.program_grammar, input, i, rest, acc)
+    return parse_chunk(grammar.program_grammar, input, i, rest, acc)
   else
+  -- cps that ^
     local state = parser({ rest = rest, i = i, input = input, port = result })
     if state.error ~= nil then return state end
     if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
-    return cps.parse_chunk(cps.program, grammar.program_grammar, input, state.i, state.rest, acc)
+    return parse_chunk(grammar.program_grammar, input, state.i, state.rest, acc)
   end
 end
 
@@ -77,7 +77,7 @@ local function list(args)
   local acc = {}
   local state = { rest = args.rest, i = args.i }
   repeat
-    state = parse_chunk(grammar.list_grammar, { rest = state.rest, i = state.i, input = args.input })
+    state = parse_chunk_old(grammar.list_grammar, { rest = state.rest, i = state.i, input = args.input })
     local parser = parsers.list[state.result.type]
     if parser ~= nil then
       state = parser({ rest = state.rest, i = state.i, input = args.input, port = state.result })
@@ -99,7 +99,7 @@ local function template(args)
   local acc = {}
   local state = { rest = args.rest, i = args.i }
   repeat
-    state = parse_chunk(grammar.template_grammar, { rest = state.rest, i = state.i, input = args.input })
+    state = parse_chunk_old(grammar.template_grammar, { rest = state.rest, i = state.i, input = args.input })
     -- placeholder here
     if state.error ~= nil then
       return state
@@ -122,7 +122,13 @@ parsers.list.left_brace = template
 
 
 local function parse(args)
-  return cps.parse_chunk(cps.program, grammar.program_grammar, args.input, 1, args.input, { type = 'program' })
+  return parse_chunk(
+    grammar.program_grammar,
+    args.input,
+    1,
+    args.input,
+    { type = 'program', continuation = program }
+  )
 end
 
 
