@@ -43,9 +43,9 @@ local parsers = {
   template = {}
 }
 
-local program_cps
-local parse_chunk_cps
-parse_chunk_cps = function(grammar, input, i, rest, acc)
+local cps = {}
+
+cps.parse_chunk = function(continuation, grammar, input, i, rest, acc)
   local result, error = grammar:match(rest)
   if error then
     local line, col = re.calcline(input, i)
@@ -57,19 +57,19 @@ parse_chunk_cps = function(grammar, input, i, rest, acc)
     }
   end
   local len = result.val:len()
-  return program_cps(input, i + len, string.sub(rest, len + 1), result, acc)
+  return continuation(input, i + len, string.sub(rest, len + 1), result, acc)
 end
-program_cps = function(input, i, rest, result, acc)
+cps.program = function(input, i, rest, result, acc)
   if rest == '' then return acc end
   local parser = parsers.program[result.type]
   if parser == nil then
     if result.type ~= 'ignored' then table.insert(acc, result) end
-    return parse_chunk_cps(grammar.program_grammar, input, i, rest, acc)
+    return cps.parse_chunk(cps.program, grammar.program_grammar, input, i, rest, acc)
   else
     local state = parser({ rest = rest, i = i, input = input, port = result })
     if state.error ~= nil then return state end
     if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
-    return parse_chunk_cps(grammar.program_grammar, input, state.i, state.rest, acc)
+    return cps.parse_chunk(cps.program, grammar.program_grammar, input, state.i, state.rest, acc)
   end
 end
 
@@ -122,7 +122,7 @@ parsers.list.left_brace = template
 
 
 local function parse(args)
-  return parse_chunk_cps(grammar.program_grammar, args.input, 1, args.input, { type = 'program' })
+  return cps.parse_chunk(cps.program, grammar.program_grammar, args.input, 1, args.input, { type = 'program' })
 end
 
 
