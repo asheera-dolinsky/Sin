@@ -37,29 +37,40 @@ local function parse_chunk(grammar, args)
   return { result = result, rest = string.sub(args.rest, i), i = args.i + len }
 end
 
-
 local parsers = {
   program = {},
   list = {},
   template = {}
 }
 
-
-local function program(args)
-  local acc = {}
-  local state = { rest = args.rest, i = args.i }
-  repeat
-    state = parse_chunk(grammar.program_grammar, { rest = state.rest, i = state.i, input = args.input })
-    local parser = parsers.program[state.result.type]
-    if parser ~= nil then
-      state = parser({ rest = state.rest, i = state.i, input = args.input, port = state.result })
-    end
-    if state.error ~= nil then
-      return state
-    end
+local program_cps
+local parse_chunk_cps
+parse_chunk_cps = function(grammar, input, i, rest, acc)
+  local result, error = grammar:match(rest)
+  if error then
+    local line, col = re.calcline(input, i)
+    return {
+      type = 'error',
+      val = error == 'fail' and 'unexpected token',
+      line = line,
+      col = col
+    }
+  end
+  local len = result.val:len()
+  return program_cps(input, i + len, string.sub(rest, len + 1), result, acc)
+end
+program_cps = function(input, i, rest, result, acc)
+  if rest == '' then return acc end
+  local parser = parsers.program[result.type]
+  if parser == nil then
+    if result.type ~= 'ignored' then table.insert(acc, result) end
+    return parse_chunk_cps(grammar.program_grammar, input, i, rest, acc)
+  else
+    local state = parser({ rest = rest, i = i, input = input, port = result })
+    if state.error ~= nil then return state end
     if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
-  until state.rest == ''
-  return acc
+    return parse_chunk_cps(grammar.program_grammar, input, state.i, state.rest, acc)
+  end
 end
 
 local function list(args)
@@ -81,7 +92,7 @@ local function list(args)
     if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
   until state.rest == ''
   local line, col = re.calcline(args.input, args.i - 1)
-  return { error = 'non-delimited list', line = line, col = col, result = {} }
+  return { type = 'error', val = 'non-delimited list', line = line, col = col }
 end
 
 local function template(args)
@@ -100,7 +111,7 @@ local function template(args)
     table.insert(acc, state.result)
   until state.rest == ''
   local line, col = re.calcline(args.input, args.i - 1)
-  return { error = 'non-delimited template literal', line = line, col = col, result = {} }
+  return { type = 'error', val = 'non-delimited template literal', line = line, col = col }
 end
 
 
@@ -111,18 +122,13 @@ parsers.list.left_brace = template
 
 
 local function parse(args)
-  return program {
-    rest = args.input,
-    input = args.input,
-    i = 1
-  }
+  return parse_chunk_cps(grammar.program_grammar, args.input, 1, args.input, { type = 'program' })
 end
 
 
 local input = [[
-
  ЫЫЫЫЫ
-
+   
      (    (x))
   'this-is-a-quotation
   \f!
