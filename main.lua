@@ -43,34 +43,50 @@ local parsers = {
   template = {}
 }
 
-local function parse_chunk(lexicon, input, i, rest, acc)
-  local result, error = lexicon:match(rest)
-  if error then
-    local line, col = re.calcline(input, i)
-    return {
-      type = 'error',
-      val = 'unexpected token',
-      line = line,
-      col = col
-    }
-  end
-  local len = result.val:len()
-  return acc.continuation(input, i + len, string.sub(rest, len + 1), result, acc)
+local continuations = {
+  program = {},
+  list = {},
+  template = {}
+}
+
+local grammars = {}
+
+local function construct_error(input, i, msg)
+  local line, col = re.calcline(input, i)
+  return {
+    type = 'error',
+    val = msg,
+    line = line,
+    col = col
+  }
 end
 
-local function program(input, i, rest, result, acc)
-  if rest == '' then return acc end
-  -- cps this v
+local function parse_chunk(global, acc)
+  local i = global.i
+  local rest = global.rest
+  local continuation = acc.continuation
+  local result, error = grammars[continuation]:match(rest)
+  if error then return construct_error(global.input, i, 'unexpected token') else
+    local len = result.val:len()
+    global.i = i + len
+    global.rest = string.sub(rest, len + 1)
+    return continuation(global, acc, result)
+  end
+end
+
+local function program(global, acc, result)
+  if global.rest == '' then return acc end
   local parser = parsers.program[result.type]
   if parser == nil then
     if result.type ~= 'ignored' then table.insert(acc, result) end
-    return parse_chunk(grammar.program_grammar, input, i, rest, acc)
+    return parse_chunk(global, acc)
   else
+  -- cps this v
+    local parser_state = parser({ rest = global.rest, i = global.i, input = global.input, port = result })
+    if parser_state.type == 'error' then return parser_state end
+    if parser_state.result.type ~= 'ignored' then table.insert(acc, parser_state.result) end
+    return parse_chunk({ input = global.input, i = parser_state.i, rest = parser_state.rest }, acc)
   -- cps that ^
-    local state = parser({ rest = rest, i = i, input = input, port = result })
-    if state.error ~= nil then return state end
-    if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
-    return parse_chunk(grammar.program_grammar, input, state.i, state.rest, acc)
   end
 end
 
@@ -93,7 +109,12 @@ local function list(args)
     if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
   until state.rest == ''
   local line, col = re.calcline(args.input, args.i - 1)
-  return { type = 'error', val = 'non-delimited list', line = line, col = col }
+  return {
+    type = 'error',
+    val = 'non-delimited list',
+    line = line,
+    col = col
+  }
 end
 
 local function template(args)
@@ -112,28 +133,64 @@ local function template(args)
     table.insert(acc, state.result)
   until state.rest == ''
   local line, col = re.calcline(args.input, args.i - 1)
-  return { type = 'error', val = 'non-delimited template literal', line = line, col = col }
+  return {
+    type = 'error',
+    val = 'non-delimited template literal',
+    line = line,
+    col = col
+  }
 end
 
 
 parsers.program.left_brace = template
 parsers.program.left_paren = list
-parsers.list.left_paren = list
 parsers.list.left_brace = template
+parsers.list.left_paren = list
+
+
+local function list_cps(input, i, rest, result, acc) -- aperture in acc
+  if rest == '' then
+    local line, col = re.calcline(input, acc.aperture.i - 1)
+    return {
+      type = 'error',
+      val = 'non-delimited list',
+      line = line,
+      col = col
+    }
+  end
+  if result.type == 'right_paren' then
+    table.insert(acc.parent, acc)
+    parse_chunk(input, i, rest, acc.parent)
+  elseif result.type == 'left_paren' then
+    return parse_chunk(input, i, rest, {
+      type = 'list',
+      aperture = {
+      },
+      continuation = list_cps
+    })
+  else
+    if result.type ~= 'ignored' then table.insert(acc, result) end
+    return parse_chunk(input, i, rest, acc)
+  end
+end
+
+grammars[program] = grammar.program_grammar
+grammars[list_cps] = grammar.list_grammar
 
 
 local function parse(args)
-  return parse_chunk(
-    grammar.program_grammar,
-    args.input,
-    1,
-    args.input,
+  return parse_chunk({
+      input = args.input,
+      i = 1,
+      rest = args.input
+    },
     { type = 'program', continuation = program }
   )
 end
 
 
 local input = [[
+   
  ЫЫЫЫЫ
    
      (    (x))
