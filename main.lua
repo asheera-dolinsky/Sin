@@ -20,7 +20,6 @@
 
 require 'polyfill'
 
-local re = require 'relabel'
 local pretty_print = (require 'pretty-print').prettyPrint
 
 local grammar = require 'grammar'
@@ -29,12 +28,11 @@ local grammar = require 'grammar'
 local function parse_chunk_old(lexicon, args)
   local result, error = lexicon:match(args.rest)
   if error then
-    local line, col = re.calcline(args.input, args.i)
-    return { error = error == 'fail' and 'unexpected token' or error, line = line, col = col, result = {} }
+    return { type = 'error', val = 'unexpected token' }
   end
   local len = result.val:len()
   local i = len + 1
-  return { result = result, rest = string.sub(args.rest, i), i = args.i + len }
+  return { result = result, rest = string.sub(args.rest, i) }
 end
 
 local parsers = {
@@ -51,24 +49,19 @@ local continuations = {
 
 local grammars = {}
 
-local function construct_error(input, i, msg)
-  local line, col = re.calcline(input, i)
+local function construct_error(msg)
   return {
     type = 'error',
-    val = msg,
-    line = line,
-    col = col
+    val = msg
   }
 end
 
 local function parse_chunk(global, acc)
-  local i = global.i
   local rest = global.rest
   local continuation = acc.continuation
   local result, error = grammars[continuation]:match(rest)
-  if error then return construct_error(global.input, i, 'unexpected token') else
+  if error then return construct_error('unexpected token') else
     local len = result.val:len()
-    global.i = i + len
     global.rest = string.sub(rest, len + 1)
     return continuation(global, acc, result)
   end
@@ -82,62 +75,54 @@ local function program(global, acc, result)
     return parse_chunk(global, acc)
   else
   -- cps this v
-    local parser_state = parser({ rest = global.rest, i = global.i, input = global.input, port = result })
+    local parser_state = parser({ rest = global.rest, input = global.input, aperture = result })
     if parser_state.type == 'error' then return parser_state end
     if parser_state.result.type ~= 'ignored' then table.insert(acc, parser_state.result) end
-    return parse_chunk({ input = global.input, i = parser_state.i, rest = parser_state.rest }, acc)
+    return parse_chunk({ input = global.input, rest = parser_state.rest }, acc)
   -- cps that ^
   end
 end
 
 local function list(args)
   local acc = {}
-  local state = { rest = args.rest, i = args.i }
+  local state = { rest = args.rest }
   repeat
     state = parse_chunk_old(grammar.list_grammar, { rest = state.rest, i = state.i, input = args.input })
     local parser = parsers.list[state.result.type]
     if parser ~= nil then
-      state = parser({ rest = state.rest, i = state.i, input = args.input, port = state.result })
+      state = parser({ rest = state.rest, input = args.input, port = state.result })
     end
     if state.error ~= nil then
       return state
     end
     if state.result.type == 'right_paren' then
       acc.type = 'list'
-      return { result = acc, rest = state.rest, i = state.i }
+      return { result = acc, rest = state.rest }
     end
     if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
   until state.rest == ''
-  local line, col = re.calcline(args.input, args.i - 1)
-  return {
-    type = 'error',
-    val = 'non-delimited list',
-    line = line,
-    col = col
-  }
+  print(args.rest)
+  return construct_error('non-delimited list')
 end
 
 local function template(args)
   local acc = {}
-  local state = { rest = args.rest, i = args.i }
+  local state = { rest = args.rest }
   repeat
-    state = parse_chunk_old(grammar.template_grammar, { rest = state.rest, i = state.i, input = args.input })
+    state = parse_chunk_old(grammar.template_grammar, { rest = state.rest, input = args.input })
     -- placeholder here
     if state.error ~= nil then
       return state
     end
     if state.result.type == 'right_brace' then
       acc.type = 'template'
-      return { result = acc, rest = state.rest, i = state.i }
+      return { result = acc, rest = state.rest }
     end
     table.insert(acc, state.result)
   until state.rest == ''
-  local line, col = re.calcline(args.input, args.i - 1)
   return {
     type = 'error',
-    val = 'non-delimited template literal',
-    line = line,
-    col = col
+    val = 'non-delimited template literal'
   }
 end
 
@@ -148,24 +133,20 @@ parsers.list.left_brace = template
 parsers.list.left_paren = list
 
 
-local function list_cps(input, i, rest, result, acc) -- aperture in acc
+local function list_cps(input, rest, result, acc) -- aperture in acc
   if rest == '' then
-    local line, col = re.calcline(input, acc.aperture.i - 1)
     return {
       type = 'error',
-      val = 'non-delimited list',
-      line = line,
-      col = col
+      val = 'non-delimited list'
     }
   end
   if result.type == 'right_paren' then
     table.insert(acc.parent, acc)
     parse_chunk(input, i, rest, acc.parent)
   elseif result.type == 'left_paren' then
-    return parse_chunk(input, i, rest, {
+    return parse_chunk(input, rest, {
       type = 'list',
-      aperture = {
-      },
+      aperture = {},
       continuation = list_cps
     })
   else
@@ -181,7 +162,6 @@ grammars[list_cps] = grammar.list_grammar
 local function parse(args)
   return parse_chunk({
       input = args.input,
-      i = 1,
       rest = args.input
     },
     { type = 'program', continuation = program }
@@ -193,7 +173,7 @@ local input = [[
    
  ЫЫЫЫЫ
    
-     (    (x))
+    ГК(    (Ф))
   'this-is-a-quotation
   \f!
   print!
