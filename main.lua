@@ -41,15 +41,6 @@ local parsers = {
   template = {}
 }
 
-local continuations = {
-  program = {},
-  list = {},
-  template = {}
-}
-
-local grammars = {}
-
-
 local function construct_error(msg)
   return {
     type = 'error',
@@ -152,38 +143,38 @@ local function list_cps(input, rest, result, acc) -- aperture in acc
   end
 end
 
-grammars[program] = grammar.program_grammar
-grammars[list_cps] = grammar.list_grammar
-
-
-
 
 local function parse(args)
   local invariants = {
     [program] = {
+      type = 'program',
       continuation = program,
       grammar = grammar.program_grammar,
       left_brace = template,
       left_paren = list
     },
     [list] = {
+      type = 'list',
       continuation = list,
       grammar = grammar.list_grammar,
       left_brace = template,
       left_paren = list
     }
   }
+  local continuation = program
+  local invariant = invariants[continuation]
   return parse_chunk(
     invariants, {
       input = args.input,
       rest = args.input
     }, {
-      type = 'program',
-      continuation = program
+      type = invariant.type,
+      continuation = invariant.continuation
     }
   )
 end
 
+-- [this is a template literal]
 
 local input = [[
    
@@ -194,7 +185,7 @@ local input = [[
   \f!
   print!
   For i v
-   2x  [this is a template literal] 10x1fe1    da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
+   2x   10x1fe1    da10xffb10.1c 1 1. 1перацыяЫaad 0x1fe1d a10xffb10.1c1 cd 
      2 predicate? f 0x1fe1d 10.1 0xff 10.1e10 -sdf выаыв  sdf 
      -10 -10.8 -0x1fe -10.10e10
 g!]]
@@ -203,4 +194,3 @@ g!]]
 pretty_print(parse {
   input = input
 })
-
