@@ -49,6 +49,7 @@ local continuations = {
 
 local grammars = {}
 
+
 local function construct_error(msg)
   return {
     type = 'error',
@@ -56,29 +57,29 @@ local function construct_error(msg)
   }
 end
 
-local function parse_chunk(global, acc)
+local function parse_chunk(invariants, global, acc)
   local rest = global.rest
   local continuation = acc.continuation
-  local result, error = grammars[continuation]:match(rest)
+  local result, error = invariants[continuation].grammar:match(rest)
   if error then return construct_error('unexpected token') else
     local len = result.val:len()
     global.rest = string.sub(rest, len + 1)
-    return continuation(global, acc, result)
+    return continuation(invariants, global, acc, result)
   end
 end
 
-local function program(global, acc, result)
+local function program(invariants, global, acc, result)
   if global.rest == '' then return acc end
-  local parser = parsers.program[result.type]
+  local parser = invariants[program][result.type]
   if parser == nil then
     if result.type ~= 'ignored' then table.insert(acc, result) end
-    return parse_chunk(global, acc)
+    return parse_chunk(invariants, global, acc)
   else
   -- cps this v
     local parser_state = parser({ rest = global.rest, input = global.input, aperture = result })
     if parser_state.type == 'error' then return parser_state end
     if parser_state.result.type ~= 'ignored' then table.insert(acc, parser_state.result) end
-    return parse_chunk({ input = global.input, rest = parser_state.rest }, acc)
+    return parse_chunk(invariants, { input = global.input, rest = parser_state.rest }, acc)
   -- cps that ^
   end
 end
@@ -120,10 +121,7 @@ local function template(args)
     end
     table.insert(acc, state.result)
   until state.rest == ''
-  return {
-    type = 'error',
-    val = 'non-delimited template literal'
-  }
+  return construct_error('non-delimited template literal')
 end
 
 
@@ -131,7 +129,6 @@ parsers.program.left_brace = template
 parsers.program.left_paren = list
 parsers.list.left_brace = template
 parsers.list.left_paren = list
-
 
 local function list_cps(input, rest, result, acc) -- aperture in acc
   if rest == '' then
@@ -142,7 +139,7 @@ local function list_cps(input, rest, result, acc) -- aperture in acc
   end
   if result.type == 'right_paren' then
     table.insert(acc.parent, acc)
-    parse_chunk(input, i, rest, acc.parent)
+    parse_chunk(input, rest, acc.parent)
   elseif result.type == 'left_paren' then
     return parse_chunk(input, rest, {
       type = 'list',
@@ -151,7 +148,7 @@ local function list_cps(input, rest, result, acc) -- aperture in acc
     })
   else
     if result.type ~= 'ignored' then table.insert(acc, result) end
-    return parse_chunk(input, i, rest, acc)
+    return parse_chunk(input, rest, acc)
   end
 end
 
@@ -159,12 +156,31 @@ grammars[program] = grammar.program_grammar
 grammars[list_cps] = grammar.list_grammar
 
 
+
+
 local function parse(args)
-  return parse_chunk({
+  local invariants = {
+    [program] = {
+      continuation = program,
+      grammar = grammar.program_grammar,
+      left_brace = template,
+      left_paren = list
+    },
+    [list] = {
+      continuation = list,
+      grammar = grammar.list_grammar,
+      left_brace = template,
+      left_paren = list
+    }
+  }
+  return parse_chunk(
+    invariants, {
       input = args.input,
       rest = args.input
-    },
-    { type = 'program', continuation = program }
+    }, {
+      type = 'program',
+      continuation = program
+    }
   )
 end
 
@@ -172,7 +188,7 @@ end
 local input = [[
    
  ЫЫЫЫЫ
-   
+ 
     ГК(    (Ф))
   'this-is-a-quotation
   \f!
