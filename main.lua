@@ -17,29 +17,9 @@
 --     Revision:  ---
 --------------------------------------------------------------------------------
 --
-
 require 'polyfill'
-
 local pretty_print = (require 'pretty-print').prettyPrint
-
 local grammar = require 'grammar'
-
-
-local function parse_chunk_old(lexicon, args)
-  local result, error = lexicon:match(args.rest)
-  if error then
-    return { type = 'error', val = 'unexpected token' }
-  end
-  local len = result.val:len()
-  local i = len + 1
-  return { result = result, rest = string.sub(args.rest, i) }
-end
-
-local parsers = {
-  program = {},
-  list = {},
-  template = {}
-}
 
 local function construct_error(msg)
   return {
@@ -48,54 +28,58 @@ local function construct_error(msg)
   }
 end
 
-local function parse_chunk(invariants, global, acc)
-  local rest = global.rest
-  local continuation = acc.continuation
-  local result, error = invariants[continuation].grammar:match(rest)
-  if error then return construct_error('unexpected token') else
-    local len = result.val:len()
-    global.rest = string.sub(rest, len + 1)
-    return continuation(invariants, global, acc, result)
-  end
+local function process(invariants, invariant, global, ancestors, acc)
+  local result, error = invariant.grammar:match(global.rest)
+  if error then return construct_error('unexpected token') end
+  local len = result.val:len()
+  global.rest = string.sub(global.rest, len + 1)
+  return invariant.continuation(invariants, invariant, global, ancestors, acc, result)
 end
 
-local function program(invariants, global, acc, result)
+local function program(invariants, invariant, global, ancestors, acc, result)
   if global.rest == '' then return acc end
-  local parser = invariants[program][result.type]
-  if parser == nil then
+  local child_invariant = invariants[program].invariants[result.type]
+  if child_invariant == nil then
     if result.type ~= 'ignored' then table.insert(acc, result) end
-    return parse_chunk(invariants, global, acc)
+    return process(invariants, invariant, global, ancestors, acc)
   else
-  -- cps this v
-    local parser_state = parser({ rest = global.rest, input = global.input, aperture = result })
-    if parser_state.type == 'error' then return parser_state end
-    if parser_state.result.type ~= 'ignored' then table.insert(acc, parser_state.result) end
-    return parse_chunk(invariants, { input = global.input, rest = parser_state.rest }, acc)
-  -- cps that ^
+    table.give2(ancestors, invariant, acc)
+    return process(invariants, child_invariant, global, ancestors, { type = child_invariant.type })
   end
 end
 
-local function list(args)
-  local acc = {}
-  local state = { rest = args.rest }
-  repeat
-    state = parse_chunk_old(grammar.list_grammar, { rest = state.rest, i = state.i, input = args.input })
-    local parser = parsers.list[state.result.type]
-    if parser ~= nil then
-      state = parser({ rest = state.rest, input = args.input, port = state.result })
-    end
-    if state.error ~= nil then
-      return state
-    end
-    if state.result.type == 'right_paren' then
-      acc.type = 'list'
-      return { result = acc, rest = state.rest }
-    end
-    if state.result.type ~= 'ignored' then table.insert(acc, state.result) end
-  until state.rest == ''
-  print(args.rest)
-  return construct_error('non-delimited list')
+local function list(invariants, invariant, global, ancestors, acc, result)
+  if result.type == 'right_paren' then
+    local parent_invariant, parent_acc = table.take2(ancestors)
+    return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+  end
+  if global.rest == '' then return construct_error('non-delimited list') end
+  local child_invariant = invariants[program].invariants[result.type]
+  if child_invariant == nil then
+    if result.type ~= 'ignored' then table.insert(acc, result) end
+    return process(invariants, invariant, global, ancestors, acc)
+  else
+    table.give2(ancestors, invariant, acc)
+    return process(invariants, child_invariant, global, ancestors, { type = child_invariant.type })
+  end
 end
+
+local function template_prototype(invariants, invariant, global, ancestors, acc, result)
+  if result.type == 'right_paren' then
+    local parent_invariant, parent_acc = table.take2(ancestors)
+    return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+  end
+  if global.rest == '' then return construct_error('non-delimited list') end
+  local child_invariant = invariants[program].invariants[result.type]
+  if child_invariant == nil then
+    if result.type ~= 'ignored' then table.insert(acc, result) end
+    return process(invariants, invariant, global, ancestors, acc)
+  else
+    table.give2(ancestors, invariant, acc)
+    return process(invariants, child_invariant, global, ancestors, { type = child_invariant.type })
+  end
+end
+
 
 local function template(args)
   local acc = {}
@@ -115,63 +99,25 @@ local function template(args)
   return construct_error('non-delimited template literal')
 end
 
-
-parsers.program.left_brace = template
-parsers.program.left_paren = list
-parsers.list.left_brace = template
-parsers.list.left_paren = list
-
-local function list_cps(input, rest, result, acc) -- aperture in acc
-  if rest == '' then
-    return {
-      type = 'error',
-      val = 'non-delimited list'
-    }
-  end
-  if result.type == 'right_paren' then
-    table.insert(acc.parent, acc)
-    parse_chunk(input, rest, acc.parent)
-  elseif result.type == 'left_paren' then
-    return parse_chunk(input, rest, {
-      type = 'list',
-      aperture = {},
-      continuation = list_cps
-    })
-  else
-    if result.type ~= 'ignored' then table.insert(acc, result) end
-    return parse_chunk(input, rest, acc)
-  end
-end
-
-
 local function parse(args)
+  local program_invariant = {
+    type = 'program',
+    continuation = program,
+    grammar = grammar.program_grammar,
+    invariants = {}
+  }
   local invariants = {
-    [program] = {
-      type = 'program',
-      continuation = program,
-      grammar = grammar.program_grammar,
-      left_brace = template,
-      left_paren = list
-    },
+    [program] = program_invariant,
     [list] = {
       type = 'list',
       continuation = list,
       grammar = grammar.list_grammar,
-      left_brace = template,
-      left_paren = list
+      invariants = {}
     }
   }
-  local continuation = program
-  local invariant = invariants[continuation]
-  return parse_chunk(
-    invariants, {
-      input = args.input,
-      rest = args.input
-    }, {
-      type = invariant.type,
-      continuation = invariant.continuation
-    }
-  )
+  program_invariant.invariants.left_paren = invariants[list]
+  invariants[list].invariants.left_paren = invariants[list]
+  return process(invariants, program_invariant, { input = args.input, rest = args.input }, {}, { type = program_invariant.type })
 end
 
 -- [this is a template literal]

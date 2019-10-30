@@ -1,0 +1,27 @@
+For (i v) (Ipairs (a)) (
+  Print (i v)
+)
+
+Fun (x y z) (
+  -> (
+    + (x y z)
+    * (x y z)
+  )
+)
+
+Let (
+  x Fn (x y z) (
+    -> (
+      + (x y z)
+      * (x y z)
+    )
+  )
+) (y) (z [this is something]) (o 128)
+
+Get(A(x) b :(F() G()) {y} [z])
+
+Todo ([housework]) (
+  Item (Priority (high) [Clean the house.])
+  Item (Priority (medium) [Wash the dishes.])
+  Item (Priority (medium) [Buy more soap.])
+)

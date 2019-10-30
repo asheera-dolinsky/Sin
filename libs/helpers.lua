@@ -17,9 +17,7 @@
 --     Revision:  ---
 --------------------------------------------------------------------------------
 --
-
 local utf8 = require 'utf8'
-
 
 local function isupper(c)
   return utf8.upper(c) ~= utf8.lower(c) and c == utf8.upper(c)
