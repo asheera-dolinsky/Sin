@@ -39,18 +39,18 @@ local function tprint(tbl, indent)
     if type(tonumber(k)) == 'number' then
       formatting = string.rep("  ", indent)..ansicolors.colorize(k..": ", ansicolors.bright, ansicolors.blink)
     else
-      formatting = string.rep("  ", indent)..k..": "
+      formatting = string.rep("  ", indent)..ansicolors.colorize(k..": ", ansicolors.bright)
     end
     if type(v) == "table" then
       local mt = getmetatable(v)
-        if type(mt) == 'string' then print(formatting..ansicolors.colorize(mt, ansicolors.blue)) else
+        if type(mt) == 'string' then print(formatting..ansicolors.colorize(mt, ansicolors.blue, ansicolors.bright)) else
         print(formatting)
         tprint(v, indent+1)
       end
     elseif type(v) == 'boolean' then
       print(formatting .. tostring(v))
     else
-      if k == 'val' then print(formatting..ansicolors.colorize(v, ansicolors.yellow)) else print(formatting..v) end
+      if k == 'val' then print(formatting..ansicolors.colorize(v, ansicolors.yellow, ansicolors.bright)) else print(formatting..v) end
     end
   end
 end

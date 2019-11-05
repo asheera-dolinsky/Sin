@@ -68,7 +68,6 @@ end
 local function template(invariants, invariant, global, ancestors, acc, result)
 end
 
-
 local function old_template(args)
   local acc = {}
   local state = { rest = args.rest }
@@ -114,7 +113,7 @@ local input = [[
    
  ЫЫЫЫЫ
  
-    ГК(    (Ф))
+    ГК(    (Ф И О))
   'this-is-a-quotation
   \f!
   print!
