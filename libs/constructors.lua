@@ -17,22 +17,21 @@
 --     Revision:  ---
 --------------------------------------------------------------------------------
 --
-local function immutable(obj, err)
-  local mt = {}
+local function immutable(obj, label, err)
+  local mt = { __metatable = label }
   function mt.__index(_, k)
     local v = obj[k]
-    if type(v) == 'table' then
-      v = immutable(v)
-    end
+    if type(v) == 'table' then return immutable(v. err) end
     return v
   end
   function mt.__newindex() error(err, 2) end
+  function mt.__tostring() return label end
   local tc = setmetatable({}, mt)
   return tc
 end
 
 local function symbol(kind)
-  return immutable({ kind = kind }, 'cannot modify a symbol')
+  return immutable({}, 'symbol:'..kind, 'cannot modify a symbol')
 end
 
 return {

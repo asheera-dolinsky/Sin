@@ -18,12 +18,13 @@
 --------------------------------------------------------------------------------
 --
 require 'polyfill'
-local pretty_print = (require 'pretty-print').prettyPrint
 local grammar = require 'grammar'
+local symbols = require 'symbols'
+local tprint = require('helpers').tprint
 
 local function construct_error(msg)
   return {
-    type = 'error',
+    symbol = symbols.err,
     val = msg
   }
 end
@@ -38,50 +39,37 @@ end
 
 local function program(invariants, invariant, global, ancestors, acc, result)
   if global.rest == '' then return acc end
-  local child_invariant = invariants[program].invariants[result.type]
+  local child_invariant = invariants[program].invariants[result.symbol]
   if child_invariant == nil then
-    if result.type ~= 'ignored' then table.insert(acc, result) end
+    if result.symbol ~= symbols.ignored then table.insert(acc, result) end
     return process(invariants, invariant, global, ancestors, acc)
   else
     table.give2(ancestors, invariant, acc)
-    return process(invariants, child_invariant, global, ancestors, { type = child_invariant.type })
+    return process(invariants, child_invariant, global, ancestors, { symbol = child_invariant.symbol })
   end
 end
 
 local function list(invariants, invariant, global, ancestors, acc, result)
-  if result.type == 'right_paren' then
+  if result.symbol == symbols.right_paren then
     local parent_invariant, parent_acc = table.take2(ancestors)
     return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
   end
   if global.rest == '' then return construct_error('non-delimited list') end
-  local child_invariant = invariants[program].invariants[result.type]
+  local child_invariant = invariants[program].invariants[result.symbol]
   if child_invariant == nil then
-    if result.type ~= 'ignored' then table.insert(acc, result) end
+    if result.symbol ~= symbols.ignored then table.insert(acc, result) end
     return process(invariants, invariant, global, ancestors, acc)
   else
     table.give2(ancestors, invariant, acc)
-    return process(invariants, child_invariant, global, ancestors, { type = child_invariant.type })
+    return process(invariants, child_invariant, global, ancestors, { symbol = child_invariant.symbol })
   end
 end
 
-local function template_prototype(invariants, invariant, global, ancestors, acc, result)
-  if result.type == 'right_paren' then
-    local parent_invariant, parent_acc = table.take2(ancestors)
-    return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
-  end
-  if global.rest == '' then return construct_error('non-delimited list') end
-  local child_invariant = invariants[program].invariants[result.type]
-  if child_invariant == nil then
-    if result.type ~= 'ignored' then table.insert(acc, result) end
-    return process(invariants, invariant, global, ancestors, acc)
-  else
-    table.give2(ancestors, invariant, acc)
-    return process(invariants, child_invariant, global, ancestors, { type = child_invariant.type })
-  end
+local function template(invariants, invariant, global, ancestors, acc, result)
 end
 
 
-local function template(args)
+local function old_template(args)
   local acc = {}
   local state = { rest = args.rest }
   repeat
@@ -101,7 +89,7 @@ end
 
 local function parse(args)
   local program_invariant = {
-    type = 'program',
+    symbol = symbols.program,
     continuation = program,
     grammar = grammar.program_grammar,
     invariants = {}
@@ -109,15 +97,15 @@ local function parse(args)
   local invariants = {
     [program] = program_invariant,
     [list] = {
-      type = 'list',
+      symbol = symbols.list,
       continuation = list,
       grammar = grammar.list_grammar,
       invariants = {}
     }
   }
-  program_invariant.invariants.left_paren = invariants[list]
-  invariants[list].invariants.left_paren = invariants[list]
-  return process(invariants, program_invariant, { input = args.input, rest = args.input }, {}, { type = program_invariant.type })
+  program_invariant.invariants[symbols.left_paren] = invariants[list]
+  invariants[list].invariants[symbols.left_paren] = invariants[list]
+  return process(invariants, program_invariant, { input = args.input, rest = args.input }, {}, { symbol = program_invariant.symbol })
 end
 
 -- [this is a template literal]
@@ -136,7 +124,7 @@ local input = [[
      -10 -10.8 -0x1fe -10.10e10
 g!]]
 
-
-pretty_print(parse {
+tprint(parse {
   input = input
 })
+

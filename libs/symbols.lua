@@ -1,8 +1,8 @@
 --
 --------------------------------------------------------------------------------
---         File:  token-types.lua
+--         File:  symbols.lua
 --
---        Usage:  ./token-types.lua
+--        Usage:  ./symbols.lua
 --
 --  Description:
 --
@@ -20,13 +20,18 @@
 local symbol = require('constructors').symbol
 
 return {
+  err = symbol 'error',
+  program = symbol 'program',
+  list = symbol 'list',
+  template = symbol 'template',
   quotation = symbol 'quotation',
   identifier = symbol 'identifier',
   number = symbol 'number',
-  left_paren = symbol 'left_paren',
-  right_paren = symbol 'right_paren',
-  left_brace = symbol 'left_brace',
-  right_brace = symbol 'right_brace',
+  segment = symbol 'segment',
+  left_paren = symbol 'left paren',
+  right_paren = symbol 'right paren',
+  left_brace = symbol 'left brace',
+  right_brace = symbol 'right brace',
   whitespace = symbol 'whitespace',
   ignored = symbol 'ignored'
 }

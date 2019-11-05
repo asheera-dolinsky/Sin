@@ -20,54 +20,45 @@
 local peg = require 'lpeglabel'
 local re = require 'relabel'
 local helpers = require 'helpers'
+local symbols = require 'symbols'
 
 local function identifier_transformer(val)
   local head = helpers.head(val)
   if head == "'" then
-    local tail = helpers.tail(val)
-    print('quotation = '..val)
-    return { type = 'quotation', transformed = tail, val = val }
+    return { symbol = symbols.quotation, val = val }
   end
-  print('id = '..val)
-  return { type = 'identifier', val = val }
+  return { symbol = symbols.identifier, val = val }
 end
 
 local function number_transformer(val)
-  print('num = '..val)
-  return { type = 'number', val = val }
+  return { symbol = symbols.number, val = val }
 end
 
-
 local function left_paren_transformer(val)
-  print('left paren = '..val)
-  return { type = 'left_paren', val = val }
+  return { symbol = symbols.left_paren, val = val }
 end
 
 local function right_paren_transformer(val)
-  print('right paren = '..val)
-  return { type = 'right_paren', val = val }
+  return { symbol = symbols.right_paren, val = val }
 end
 
 local function left_brace_transformer(val)
-  print('left brace = '..val)
-  return { type = 'left_brace', val = val }
+  return { symbol = symbols.left_brace, val = val }
 end
 
 local function right_brace_transformer(val)
-  print('right brace = '..val)
-  return { type = 'right_brace', val = val }
+  return { symbol = symbols.right_brace, val = val }
 end
 
 local function whitespace_transformer(val)
-  return { type = 'whitespace', val = val }
+  return { symbol = symbols.whitespace, val = val }
 end
 
 local function ignored_transformer(token)
   local val = token.val
-  local subtype = token.type
-  return { type = 'ignored', subtype = subtype, val = val }
+  local sub = token.symbol
+  return { symbol = symbols.ignored, sub = sub, val = val }
 end
-
 
 -- delimiters
 local ws = re.compile '%s'
@@ -113,10 +104,8 @@ local identifier = identifier_token / identifier_transformer
 
 local program_grammar = whitespace + left_paren + left_brace + number + identifier
 
-
 local function segment_transformer(val)
-  print('segment = '..val)
-  return {type = 'segment', val = val}
+  return { symbol = symbols.segment, val = val }
 end
 
 -- combinators
