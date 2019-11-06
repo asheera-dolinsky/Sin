@@ -15,6 +15,9 @@
 --      Version:  0.0.0
 -- doc DD/MM/YY:  13/09/19
 --     Revision:  ---
+--
+-- TODO:
+--       *combine lists into an invocation
 --------------------------------------------------------------------------------
 --
 require 'polyfill'
@@ -66,24 +69,19 @@ local function list(invariants, invariant, global, ancestors, acc, result)
 end
 
 local function template(invariants, invariant, global, ancestors, acc, result)
-end
-
-local function old_template(args)
-  local acc = {}
-  local state = { rest = args.rest }
-  repeat
-    state = parse_chunk_old(grammar.template_grammar, { rest = state.rest, input = args.input })
-    -- placeholder here
-    if state.error ~= nil then
-      return state
-    end
-    if state.result.type == 'right_brace' then
-      acc.type = 'template'
-      return { result = acc, rest = state.rest }
-    end
-    table.insert(acc, state.result)
-  until state.rest == ''
-  return construct_error('non-delimited template literal')
+  if result.symbol == symbols.right_brace then
+    local parent_invariant, parent_acc = table.take2(ancestors)
+    return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+  end
+  if global.rest == '' then return construct_error('non-delimited template') end
+  local child_invariant = invariants[program].invariants[result.symbol]
+  if child_invariant == nil then
+    if result.symbol ~= symbols.ignored then table.insert(acc, result) end
+    return process(invariants, invariant, global, ancestors, acc)
+  else
+    table.give2(ancestors, invariant, acc)
+    return process(invariants, child_invariant, global, ancestors, { symbol = child_invariant.symbol })
+  end
 end
 
 local function parse(args)
@@ -100,19 +98,25 @@ local function parse(args)
       continuation = list,
       grammar = grammar.list_grammar,
       invariants = {}
+    },
+    [template] = {
+      symbol = symbols.template,
+      continuation = template,
+      grammar = grammar.template_grammar,
+      invariants = {}
     }
   }
   program_invariant.invariants[symbols.left_paren] = invariants[list]
+  program_invariant.invariants[symbols.left_brace] = invariants[template]
   invariants[list].invariants[symbols.left_paren] = invariants[list]
+  invariants[list].invariants[symbols.left_brace] = invariants[template]
   return process(invariants, program_invariant, { input = args.input, rest = args.input }, {}, { symbol = program_invariant.symbol })
 end
-
--- [this is a template literal]
 
 local input = [[
    
  ЫЫЫЫЫ
- 
+ [this is a template literal]
     ГК(    (Ф И О))
   'this-is-a-quotation
   \f!

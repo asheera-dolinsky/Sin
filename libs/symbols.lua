@@ -22,7 +22,9 @@ local symbol = require('constructors').symbol
 return {
   err = symbol 'error',
   program = symbol 'program',
+  ignored = symbol 'ignored',
   list = symbol 'list',
+  invocation = symbol 'invocation',
   template = symbol 'template',
   quotation = symbol 'quotation',
   identifier = symbol 'identifier',
@@ -33,5 +35,4 @@ return {
   left_brace = symbol 'left brace',
   right_brace = symbol 'right brace',
   whitespace = symbol 'whitespace',
-  ignored = symbol 'ignored'
 }
