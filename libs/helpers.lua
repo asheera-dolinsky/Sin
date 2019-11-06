@@ -32,20 +32,20 @@ local function tail(s)
   return utf8.sub(s, 2, #s)
 end
 
-local function tprint(tbl, indent)
+local function print_ast(tbl, indent)
   if not indent then indent = 0 end
   for k, v in pairs(tbl) do
     local formatting
     if type(tonumber(k)) == 'number' then
-      formatting = string.rep("  ", indent)..ansicolors.colorize(k..": ", ansicolors.bright, ansicolors.blink)
+      formatting = string.rep('  ', indent)..ansicolors.colorize(k..': ', ansicolors.bright, ansicolors.blink)
     else
-      formatting = string.rep("  ", indent)..ansicolors.colorize(k..": ", ansicolors.bright)
+      formatting = string.rep('  ', indent)..ansicolors.colorize(k..': ', ansicolors.bright)
     end
-    if type(v) == "table" then
+    if type(v) == 'table' then
       local mt = getmetatable(v)
         if type(mt) == 'string' then print(formatting..ansicolors.colorize(mt, ansicolors.blue, ansicolors.bright)) else
         print(formatting)
-        tprint(v, indent+1)
+        print_ast(v, indent+1)
       end
     elseif type(v) == 'boolean' then
       print(formatting .. tostring(v))
@@ -59,5 +59,5 @@ return {
   head = head,
   tail = tail,
   isupper = isupper,
-  tprint = tprint
+  print_ast = print_ast
 }

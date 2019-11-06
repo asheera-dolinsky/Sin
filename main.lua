@@ -23,7 +23,7 @@
 require 'polyfill'
 local grammar = require 'grammar'
 local symbols = require 'symbols'
-local tprint = require('helpers').tprint
+local print_ast = require('helpers').print_ast
 
 local function construct_error(msg)
   return {
@@ -127,7 +127,7 @@ local input = [[
      -10 -10.8 -0x1fe -10.10e10
 g!]]
 
-tprint(parse {
+print_ast(parse {
   input = input
 })
 
