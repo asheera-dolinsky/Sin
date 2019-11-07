@@ -54,10 +54,10 @@ local function whitespace_transformer(val)
   return { symbol = symbols.whitespace, val = val }
 end
 
-local function ignored_transformer(token)
+local function ignore_transformer(token)
   local val = token.val
   local sub = token.symbol
-  return { symbol = symbols.ignored, sub = sub, val = val }
+  return { symbol = symbols.ignore, sub = sub, val = val }
 end
 
 -- delimiters
@@ -96,7 +96,7 @@ local number_token = ((dash ^ -1) * (hexadecimal_token + decimal_token)) * #(whi
 
 local identifier_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
 
-local whitespace = whitespace_token / whitespace_transformer / ignored_transformer
+local whitespace = whitespace_token / whitespace_transformer / ignore_transformer
 local left_paren = left_paren_token / left_paren_transformer
 local left_brace = left_brace_token / left_brace_transformer
 local number = number_token / number_transformer

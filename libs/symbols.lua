@@ -22,7 +22,7 @@ local symbol = require('constructors').symbol
 return {
   err = symbol 'error',
   program = symbol 'program',
-  ignored = symbol 'ignored',
+  ignore = symbol 'ignore',
   list = symbol 'list',
   invocation = symbol 'invocation',
   template = symbol 'template',
