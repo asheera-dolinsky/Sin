@@ -1,22 +1,20 @@
---
 --------------------------------------------------------------------------------
 --         File:  helpers.lua
 --
 --        Usage:  ./helpers.lua
 --
---  Description:  
+--  Description:
 --
 --      Options:  ---
 -- Requirements:  ---
 --         Bugs:  ---
 --        Notes:  ---
---       Author:  YOUR NAME (), <>
--- Organization:  
+--       Author:  Asheera Dolinsky <https://github.com/asheera-dolinsky>
+-- Organization:
 --      Version:  0.0.0
 -- doc DD/MM/YY:  09/10/19
 --     Revision:  ---
 --------------------------------------------------------------------------------
---
 local utf8 = require 'utf8'
 local ansicolors = require 'ansicolors'
 
@@ -55,9 +53,23 @@ local function print_ast(tbl, indent)
   end
 end
 
+local function shallow_clone(t) return { table.unpack(t) } end
+local function pop2(t) return table.remove(t, table.maxn(t)), table.remove(t, table.maxn(t)) end
+local function take2(t)
+  local last, first = pop2(t)
+  return first, last
+end
+local function give2(t, first, last)
+  table.insert(t, first)
+  table.insert(t, last)
+end
+
 return {
   head = head,
   tail = tail,
   isupper = isupper,
-  print_ast = print_ast
+  print_ast = print_ast,
+  shallow_clone = shallow_clone,
+  take2 = take2,
+  give2 = give2
 }

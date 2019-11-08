@@ -1,4 +1,3 @@
---
 --------------------------------------------------------------------------------
 --         File:  grammar.lua
 --
@@ -10,13 +9,12 @@
 -- Requirements:  ---
 --         Bugs:  ---
 --        Notes:  ---
---       Author:  YOUR NAME (), <>
+--       Author:  Asheera Dolinsky <https://github.com/asheera-dolinsky>
 -- Organization:
 --      Version:  0.0.0
 -- doc DD/MM/YY:  19/09/19
 --     Revision:  ---
 --------------------------------------------------------------------------------
---
 local peg = require 'lpeglabel'
 local re = require 'relabel'
 local helpers = require 'helpers'

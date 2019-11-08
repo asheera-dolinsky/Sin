@@ -1,4 +1,3 @@
---
 --------------------------------------------------------------------------------
 --         File:  ansicolors.lua
 --
@@ -10,13 +9,12 @@
 -- Requirements:  ---
 --         Bugs:  ---
 --        Notes:  ---
---       Author:  Enrique García Cota <https://github.com/kikito> and Asheera Dolinsky
+--       Author:  Enrique García Cota <https://github.com/kikito> & Asheera Dolinsky
 -- Organization:
 --      Version:  0.0.0
 -- doc DD/MM/YY:  05/11/19
 --     Revision:  ---
 --------------------------------------------------------------------------------
---
 local module = {}
 local colormt = {}
 

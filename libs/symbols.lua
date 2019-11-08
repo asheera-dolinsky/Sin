@@ -1,4 +1,3 @@
---
 --------------------------------------------------------------------------------
 --         File:  symbols.lua
 --
@@ -10,13 +9,12 @@
 -- Requirements:  ---
 --         Bugs:  ---
 --        Notes:  ---
---       Author:  YOUR NAME (), <>
+--       Author:  Asheera Dolinsky <https://github.com/asheera-dolinsky>
 -- Organization:
 --      Version:  0.0.0
 -- doc DD/MM/YY:  30/10/19
 --     Revision:  ---
 --------------------------------------------------------------------------------
---
 local symbol = require('constructors').symbol
 
 return {
