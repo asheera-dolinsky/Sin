@@ -41,7 +41,19 @@ local function print_ast(tbl, indent)
     end
     if type(v) == 'table' then
       local mt = getmetatable(v)
-        if type(mt) == 'string' then print(formatting..ansicolors.colorize(mt, ansicolors.blue, ansicolors.bright)) else
+      if type(mt) == 'string' then
+        local labels = mt
+        local current = v
+        while true do
+          current = current[1]
+          if current then
+            labels = labels..'->'..getmetatable(current)
+          else
+            break
+          end
+        end
+        print(formatting..ansicolors.colorize(labels, ansicolors.white, ansicolors.bright))
+      else
         print(formatting)
         print_ast(v, indent+1)
       end
@@ -54,14 +66,25 @@ local function print_ast(tbl, indent)
 end
 
 local function shallow_clone(t) return { table.unpack(t) } end
+
 local function pop2(t) return table.remove(t, table.maxn(t)), table.remove(t, table.maxn(t)) end
+
 local function take2(t)
   local last, first = pop2(t)
   return first, last
 end
+
 local function give2(t, first, last)
   table.insert(t, first)
   table.insert(t, last)
+end
+
+local function get_value(current)
+  if type(current) == 'table' then
+    return get_value(current.val)
+  else
+    return current
+  end
 end
 
 return {
@@ -71,5 +94,6 @@ return {
   print_ast = print_ast,
   shallow_clone = shallow_clone,
   take2 = take2,
-  give2 = give2
+  give2 = give2,
+  get_value = get_value
 }

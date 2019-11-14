@@ -33,7 +33,7 @@ local function process(invariants, invariant, global, ancestors, acc)
   if invariant.grammar then
     local result, error = invariant.grammar:match(global.rest)
     if error then return construct_error(invariant.err) end
-    local len = result.val:len()
+    local len = helpers.get_value(result):len()
     global.rest = string.sub(global.rest, len + 1)
     return invariant.continuation(invariants, invariant, global, ancestors, acc, result)
   else

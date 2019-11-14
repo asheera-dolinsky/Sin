@@ -52,10 +52,8 @@ local function whitespace_transformer(val)
   return { symbol = symbols.whitespace, val = val }
 end
 
-local function ignore_transformer(token)
-  local val = token.val
-  local sub = token.symbol
-  return { symbol = symbols.ignore, sub = sub, val = val }
+local function ignore_transformer(value)
+  return { symbol = symbols.ignore, val = value }
 end
 
 -- delimiters

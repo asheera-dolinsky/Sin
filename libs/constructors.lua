@@ -15,11 +15,10 @@
 -- doc DD/MM/YY:  30/10/19
 --     Revision:  ---
 --------------------------------------------------------------------------------
-local function immutable(obj, label, err)
+local function Shallow_Immutable(obj, label, err)
   local mt = { __metatable = label }
   function mt.__index(_, k)
     local v = obj[k]
-    if type(v) == 'table' then return immutable(v. err) end
     return v
   end
   function mt.__newindex() error(err, 2) end
@@ -28,10 +27,10 @@ local function immutable(obj, label, err)
   return tc
 end
 
-local function symbol(kind)
-  return immutable({}, 'symbol:'..kind, 'cannot modify a symbol')
+local function Symbol(kind, parent)
+  return Shallow_Immutable({ parent }, kind, 'cannot modify a symbol')
 end
 
 return {
-  symbol = symbol
+  Symbol = Symbol
 }
