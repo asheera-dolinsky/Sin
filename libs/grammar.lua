@@ -20,40 +20,41 @@ local re = require 'relabel'
 local helpers = require 'helpers'
 local symbols = require 'symbols'
 
-local function identifier_transformer(val)
-  local head = helpers.head(val)
+local function identifier_transformer(value)
+  local base = { symbol = symbols.identifier, value = value }
+  local head = helpers.head(value)
   if head == "'" then
-    return { symbol = symbols.quotation, val = val }
+    return { symbol = symbols.quotation, value = base }
   end
-  return { symbol = symbols.identifier, val = val }
+  return base
 end
 
-local function number_transformer(val)
-  return { symbol = symbols.number, val = val }
+local function number_transformer(value)
+  return { symbol = symbols.number, value = value }
 end
 
-local function left_paren_transformer(val)
-  return { symbol = symbols.left_paren, val = val }
+local function left_paren_transformer(value)
+  return { symbol = symbols.left_paren, value = value }
 end
 
-local function right_paren_transformer(val)
-  return { symbol = symbols.right_paren, val = val }
+local function right_paren_transformer(value)
+  return { symbol = symbols.right_paren, value = value }
 end
 
-local function left_brace_transformer(val)
-  return { symbol = symbols.left_brace, val = val }
+local function left_brace_transformer(value)
+  return { symbol = symbols.left_brace, value = value }
 end
 
-local function right_brace_transformer(val)
-  return { symbol = symbols.right_brace, val = val }
+local function right_brace_transformer(value)
+  return { symbol = symbols.right_brace, value = value }
 end
 
-local function whitespace_transformer(val)
-  return { symbol = symbols.whitespace, val = val }
+local function whitespace_transformer(value)
+  return { symbol = symbols.whitespace, value = value }
 end
 
 local function ignore_transformer(value)
-  return { symbol = symbols.ignore, val = value }
+  return { symbol = symbols.ignore, value = value }
 end
 
 -- delimiters
@@ -100,8 +101,8 @@ local identifier = identifier_token / identifier_transformer
 
 local program_grammar = whitespace + left_paren + left_brace + number + identifier
 
-local function segment_transformer(val)
-  return { symbol = symbols.segment, val = val }
+local function segment_transformer(value)
+  return { symbol = symbols.segment, value = value }
 end
 
 -- combinators

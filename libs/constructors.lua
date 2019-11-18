@@ -27,8 +27,8 @@ local function Shallow_Immutable(obj, label, err)
   return tc
 end
 
-local function Symbol(kind, parent)
-  return Shallow_Immutable({ parent }, kind, 'cannot modify a symbol')
+local function Symbol(kind)
+  return Shallow_Immutable({}, kind, 'cannot modify a symbol')
 end
 
 return {

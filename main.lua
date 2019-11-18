@@ -21,11 +21,12 @@
 local grammar = require 'grammar'
 local symbols = require 'symbols'
 local helpers = require 'helpers'
+local print_ast = (require 'representation').print_ast
 
 local function construct_error(msg)
   return {
     symbol = symbols.err,
-    val = msg
+    value = msg
   }
 end
 
@@ -145,7 +146,7 @@ local input = [[
      -10 -10.8 -0x1fe -10.10e10
 g!]]
 
-helpers.print_ast(parse {
+print_ast(parse {
   input = input
 })
 
