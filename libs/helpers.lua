@@ -31,7 +31,9 @@ end
 
 local function shallow_clone(t) return { table.unpack(t) } end
 
-local function pop2(t) return table.remove(t, table.maxn(t)), table.remove(t, table.maxn(t)) end
+local function pop(t) return table.remove(t, table.maxn(t)) end
+
+local function pop2(t) return pop(t), pop(t) end
 
 local function take2(t)
   local last, first = pop2(t)
@@ -57,6 +59,7 @@ return {
   tail = tail,
   isupper = isupper,
   shallow_clone = shallow_clone,
+  pop = pop,
   take2 = take2,
   give2 = give2,
   get_value = get_value

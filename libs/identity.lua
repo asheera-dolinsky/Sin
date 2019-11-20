@@ -17,14 +17,29 @@
 --------------------------------------------------------------------------------
 local symbols = require 'symbols'
 
-local function inherits_identifier(current)
+local function last_exists_then(t, consequent, alternative, ...)
+  if type(t) == 'table' and t[#t] ~= nil then return consequent(t[#t], ...) end
+  return alternative(...)
+end
+
+local function identifier(current)
   if type(current) == 'table' then
     if current.symbol == symbols.identifier then return true end
-    return inherits_identifier(current.value)
+    return identifier(current.value)
+  end
+  return false
+end
+
+local function invocation(current)
+  if type(current) == 'table' then
+    if current.symbol == symbols.invocation then return true end
+    return invocation(current.value)
   end
   return false
 end
 
 return {
-  inherits_identifier = inherits_identifier
+  last_exists_then = last_exists_then,
+  identifier = identifier,
+  invocation = invocation
 }

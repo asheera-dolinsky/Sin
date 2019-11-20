@@ -22,6 +22,7 @@ local grammar = require 'grammar'
 local symbols = require 'symbols'
 local helpers = require 'helpers'
 local print_ast = (require 'representation').print_ast
+local identity = require 'identity'
 
 local function construct_error(msg)
   return {
@@ -54,10 +55,27 @@ local function program(invariants, invariant, global, ancestors, acc, result)
   end
 end
 
+local function list_last_exists_then_consequent(last, invariants, parent_invariant, global, ancestors, parent_acc, acc)
+    if identity.identifier(last) then
+      -- TODO: combine with acc
+      -- last = helpers.pop(parent_acc)
+      return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+    end
+    if identity.invocation(last) then
+      return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+    end
+    return construct_error('a list must be preceded by either another list or an identifier')
+  end
+
 local function list(invariants, invariant, global, ancestors, acc, result)
   if result.symbol == invariant.terminator then
     local parent_invariant, parent_acc = helpers.take2(ancestors)
-    return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+    return identity.last_exists_then(
+      parent_acc,
+      list_last_exists_then_consequent,
+      function () return construct_error('a list cannot be the first element in a sequence') end,
+      invariants, parent_invariant, global, ancestors, parent_acc, acc
+    )
   end
   if global.rest == '' then return construct_error(invariant.err) end
   local child_invariant = invariants[program].invariants[result.symbol]
@@ -136,7 +154,7 @@ local input = [[
    
  ЫЫЫЫЫ
  [this is a template literal]
-    ГК(    (Ф И О))
+    ГК(  ПК  (Ф И О))
   'this-is-a-quotation
   \f!
   print!
