@@ -29,8 +29,6 @@ local function tail(s)
   return utf8.sub(s, 2, #s)
 end
 
-local function shallow_clone(t) return { table.unpack(t) } end
-
 local function pop(t) return table.remove(t, table.maxn(t)) end
 
 local function pop2(t) return pop(t), pop(t) end
@@ -58,7 +56,6 @@ return {
   head = head,
   tail = tail,
   isupper = isupper,
-  shallow_clone = shallow_clone,
   pop = pop,
   take2 = take2,
   give2 = give2,

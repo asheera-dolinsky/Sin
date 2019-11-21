@@ -29,17 +29,7 @@ local function print_ast(tbl, indent)
     if type(v) == 'table' then
       local mt = getmetatable(v)
       if type(mt) == 'string' then
-        local labels = mt
-        local current = v
-        while true do
-          current = current[1]
-          if current then
-            labels = labels..'->'..getmetatable(current)
-          else
-            break
-          end
-        end
-        print(formatting..ansicolors.colorize(labels, ansicolors.white, ansicolors.bright))
+        print(formatting..ansicolors.colorize(mt, ansicolors.white, ansicolors.bright))
       else
         print(formatting)
         print_ast(v, indent+1)
