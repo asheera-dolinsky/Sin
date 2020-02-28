@@ -31,82 +31,80 @@ local function construct_error(msg)
   }
 end
 
-local function process(invariants, invariant, global, ancestors, acc)
+local function process(state, invariant, ancestors, acc)
   if invariant.grammar then
-    local result, error = invariant.grammar:match(global.rest)
+    local result, error = invariant.grammar:match(state.rest)
     if error then return construct_error(invariant.err) end
     local len = helpers.get_value(result):len()
-    global.rest = string.sub(global.rest, len + 1)
-    return invariant.continuation(invariants, invariant, global, ancestors, acc, result)
-  else
-    return invariant.continuation(invariants, invariant, global, ancestors, acc)
+    state.rest = string.sub(state.rest, len + 1)
+    return invariant.continuation(state, invariant, ancestors, acc, result)
   end
+  return invariant.continuation(state, invariant, ancestors, acc)
 end
 
-local function program(invariants, invariant, global, ancestors, acc, result)
-  if global.rest == '' then return acc end
-  local child_invariant = invariants[program].invariants[result.symbol]
+local function program(state, invariant, ancestors, acc, result)
+  if state.rest == '' then return acc end
+  local child_invariant = state.invariants[program].invariants[result.symbol]
   if child_invariant then
     helpers.give2(ancestors, invariant, acc)
-    return process(invariants, child_invariant, global, ancestors, { symbol = child_invariant.symbol })
-  else
-    table.insert(acc, result)
-    return process(invariants, invariant, global, ancestors, acc)
+    return process(state, child_invariant, ancestors, { symbol = child_invariant.symbol })
   end
+  table.insert(acc, result)
+  return process(state, invariant, ancestors, acc)
 end
 
-local function list_last_exists_then_consequent(last, invariants, parent_invariant, global, ancestors, parent_acc, acc)
-    if identity.identifier(last) then
-      -- TODO: combine with acc
-      -- last = helpers.pop(parent_acc)
-      return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
-    end
-    if identity.invocation(last) then
-      return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
-    end
-    return construct_error('a list must be preceded by either another list or an identifier')
+local function list_last_exists_then_consequent(last, state, parent_invariant, ancestors, parent_acc, acc)
+  if identity.identifier(last) then
+    -- TODO: combine with acc
+    -- last = helpers.pop(parent_acc)
+    return parent_invariant.continuation(state, parent_invariant, ancestors, parent_acc, acc)
   end
+  if identity.invocation(last) then
+    return parent_invariant.continuation(state, parent_invariant, ancestors, parent_acc, acc)
+  end
+  return construct_error('a list must be preceded by either another list or an identifier')
+end
 
-local function list(invariants, invariant, global, ancestors, acc, result)
+local function list_last_exists_then_alternative() return construct_error('a list cannot be the first element in a sequence') end
+
+local function list(state, invariant, ancestors, acc, result)
   if result.symbol == invariant.terminator then
     local parent_invariant, parent_acc = helpers.take2(ancestors)
     return identity.last_exists_then(
       parent_acc,
       list_last_exists_then_consequent,
-      function () return construct_error('a list cannot be the first element in a sequence') end,
-      invariants, parent_invariant, global, ancestors, parent_acc, acc
+      list_last_exists_then_alternative,
+      state, parent_invariant, ancestors, parent_acc, acc
     )
   end
-  if global.rest == '' then return construct_error(invariant.err) end
-  local child_invariant = invariants[program].invariants[result.symbol]
+  if state.rest == '' then return construct_error(invariant.err) end
+  local child_invariant = state.invariants[program].invariants[result.symbol]
   if child_invariant then
     helpers.give2(ancestors, invariant, acc)
-    return process(invariants, child_invariant, global, ancestors, { symbol = child_invariant.symbol })
-  else
-    table.insert(acc, result)
-    return process(invariants, invariant, global, ancestors, acc)
+    return process(state, child_invariant, ancestors, { symbol = child_invariant.symbol })
   end
+  table.insert(acc, result)
+  return process(state, invariant, ancestors, acc)
 end
 
-local function template(invariants, invariant, global, ancestors, acc, result)
+local function template(state, invariant, ancestors, acc, result)
   if result.symbol == invariant.terminator then
     local parent_invariant, parent_acc = helpers.take2(ancestors)
-    return parent_invariant.continuation(invariants, parent_invariant, global, ancestors, parent_acc, acc)
+    return parent_invariant.continuation(state, parent_invariant, ancestors, parent_acc, acc)
   end
-  if global.rest == '' then return construct_error(invariant.err) end
-  local child_invariant = invariants[program].invariants[result.symbol]
+  if state.rest == '' then return construct_error(invariant.err) end
+  local child_invariant = state.invariants[program].invariants[result.symbol]
   if child_invariant then
     helpers.give2(ancestors, invariant, acc)
-    return process(invariants, child_invariant, global, ancestors, { symbol = child_invariant.symbol })
-  else
-    table.insert(acc, result)
-    return process(invariants, invariant, global, ancestors, acc)
+    return process(state, child_invariant, ancestors, { symbol = child_invariant.symbol })
   end
+  table.insert(acc, result)
+  return process(state, invariant, ancestors, acc)
 end
 
-local function ignore(invariants, _, global, ancestors)
+local function ignore(state, _, ancestors)
   local parent_invariant, parent_acc = helpers.take2(ancestors)
-  return process(invariants, parent_invariant, global, ancestors, parent_acc)
+  return process(state, parent_invariant, ancestors, parent_acc)
 end
 
 local function parse(args)
@@ -147,7 +145,7 @@ local function parse(args)
   invariants[list].invariants[symbols.left_paren] = invariants[list]
   invariants[list].invariants[symbols.left_brace] = invariants[template]
   invariants[list].invariants[symbols.ignore] = invariants[ignore]
-  return process(invariants, program_invariant, { input = args.input, rest = args.input }, {}, { symbol = program_invariant.symbol })
+  return process({ invariants = invariants, input = args.input, rest = args.input }, program_invariant, {}, { symbol = program_invariant.symbol })
 end
 
 local input = [[

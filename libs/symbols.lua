@@ -24,7 +24,7 @@ return {
   list = Symbol 'list',
   invocation = Symbol 'invocation',
   template = Symbol 'template',
-  quotation = Symbol('quotation'),
+  quotation = Symbol 'quotation',
   identifier = Symbol 'identifier',
   number = Symbol 'number',
   segment = Symbol 'segment',
