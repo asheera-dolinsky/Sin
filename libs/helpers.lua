@@ -17,17 +17,11 @@
 --------------------------------------------------------------------------------
 local utf8 = require 'utf8'
 
-local function isupper(c)
-  return utf8.upper(c) ~= utf8.lower(c) and c == utf8.upper(c)
-end
+local function isupper(c) return utf8.upper(c) ~= utf8.lower(c) and c == utf8.upper(c) end
 
-local function head(s)
-  return utf8.sub(s, 1, 1)
-end
+local function head(s) return utf8.sub(s, 1, 1) end
 
-local function tail(s)
-  return utf8.sub(s, 2, #s)
-end
+local function tail(s) return utf8.sub(s, 2, #s) end
 
 local function pop(t) return table.remove(t, table.maxn(t)) end
 

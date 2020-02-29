@@ -16,13 +16,11 @@
 --     Revision:  ---
 --------------------------------------------------------------------------------
 local function Symbol(label)
-  local mt = { __metatable = label }
+  local mt = {__metatable = label}
   function mt.__index(_, _) end
   function mt.__newindex() error('cannot modify a symbol', 2) end
   function mt.__tostring() return label end
   return setmetatable({}, mt)
 end
 
-return {
-  Symbol = Symbol
-}
+return {Symbol = Symbol}

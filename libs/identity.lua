@@ -38,8 +38,4 @@ local function invocation(current)
   return false
 end
 
-return {
-  last_exists_then = last_exists_then,
-  identifier = identifier,
-  invocation = invocation
-}
+return {last_exists_then = last_exists_then, identifier = identifier, invocation = invocation}

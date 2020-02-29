@@ -24,12 +24,7 @@ local helpers = require 'helpers'
 local print_ast = (require 'representation').print_ast
 local identity = require 'identity'
 
-local function construct_error(msg)
-  return {
-    symbol = symbols.err,
-    value = msg
-  }
-end
+local function construct_error(msg) return {symbol = symbols.err, value = msg} end
 
 local function process(state, invariant, ancestors, acc)
   if invariant.grammar then
@@ -47,13 +42,14 @@ local function program(state, invariant, ancestors, acc, result)
   local child_invariant = state.invariants[program].invariants[result.symbol]
   if child_invariant then
     helpers.give2(ancestors, invariant, acc)
-    return process(state, child_invariant, ancestors, { symbol = child_invariant.symbol })
+    return process(state, child_invariant, ancestors, {symbol = child_invariant.symbol})
   end
   table.insert(acc, result)
   return process(state, invariant, ancestors, acc)
 end
 
-local function list_last_exists_then_consequent(last, state, parent_invariant, ancestors, parent_acc, acc)
+local function list_last_exists_then_consequent(last, state, parent_invariant, ancestors,
+                                                parent_acc, acc)
   if identity.identifier(last) then
     -- TODO: combine with acc
     -- last = helpers.pop(parent_acc)
@@ -65,23 +61,22 @@ local function list_last_exists_then_consequent(last, state, parent_invariant, a
   return construct_error('a list must be preceded by either another list or an identifier')
 end
 
-local function list_last_exists_then_alternative() return construct_error('a list cannot be the first element in a sequence') end
+local function list_last_exists_then_alternative()
+  return construct_error('a list cannot be the first element in a sequence')
+end
 
 local function list(state, invariant, ancestors, acc, result)
   if result.symbol == invariant.terminator then
     local parent_invariant, parent_acc = helpers.take2(ancestors)
-    return identity.last_exists_then(
-      parent_acc,
-      list_last_exists_then_consequent,
-      list_last_exists_then_alternative,
-      state, parent_invariant, ancestors, parent_acc, acc
-    )
+    return identity.last_exists_then(parent_acc, list_last_exists_then_consequent,
+                                     list_last_exists_then_alternative, state, parent_invariant,
+                                     ancestors, parent_acc, acc)
   end
   if state.rest == '' then return construct_error(invariant.err) end
   local child_invariant = state.invariants[program].invariants[result.symbol]
   if child_invariant then
     helpers.give2(ancestors, invariant, acc)
-    return process(state, child_invariant, ancestors, { symbol = child_invariant.symbol })
+    return process(state, child_invariant, ancestors, {symbol = child_invariant.symbol})
   end
   table.insert(acc, result)
   return process(state, invariant, ancestors, acc)
@@ -96,7 +91,7 @@ local function template(state, invariant, ancestors, acc, result)
   local child_invariant = state.invariants[program].invariants[result.symbol]
   if child_invariant then
     helpers.give2(ancestors, invariant, acc)
-    return process(state, child_invariant, ancestors, { symbol = child_invariant.symbol })
+    return process(state, child_invariant, ancestors, {symbol = child_invariant.symbol})
   end
   table.insert(acc, result)
   return process(state, invariant, ancestors, acc)
@@ -145,7 +140,8 @@ local function parse(args)
   invariants[list].invariants[symbols.left_paren] = invariants[list]
   invariants[list].invariants[symbols.left_brace] = invariants[template]
   invariants[list].invariants[symbols.ignore] = invariants[ignore]
-  return process({ invariants = invariants, input = args.input, rest = args.input }, program_invariant, {}, { symbol = program_invariant.symbol })
+  return process({invariants = invariants, input = args.input, rest = args.input},
+                 program_invariant, {}, {symbol = program_invariant.symbol})
 end
 
 local input = [[
@@ -162,7 +158,5 @@ local input = [[
      -10 -10.8 -0x1fe -10.10e10
 g!]]
 
-print_ast(parse {
-  input = input
-})
+print_ast(parse {input = input})
 

@@ -18,22 +18,16 @@
 local module = {}
 local colormt = {}
 
-function colormt:__tostring()
-  return self.value
-end
+function colormt:__tostring() return self.value end
 
-function colormt:__concat(other)
-  return tostring(self) .. tostring(other)
-end
+function colormt:__concat(other) return tostring(self) .. tostring(other) end
 
-function colormt:__call(s)
-  return self..s..module.reset
-end
+function colormt:__call(s) return self .. s .. module.reset end
 
 colormt.__metatable = {}
 
 local function makecolor(value)
-  return setmetatable({ value = string.char(27) .. '[' .. tostring(value) .. 'm' }, colormt)
+  return setmetatable({value = string.char(27) .. '[' .. tostring(value) .. 'm'}, colormt)
 end
 
 local colors = {
@@ -65,17 +59,15 @@ local colors = {
   onblue = 44,
   onmagenta = 45,
   oncyan = 46,
-  onwhite = 47,
+  onwhite = 47
 }
 
-for c, v in pairs(colors) do
-  module[c] = makecolor(v)
-end
+for c, v in pairs(colors) do module[c] = makecolor(v) end
 
 module.colorize = function(s, ...)
   local acc = ''
-  for _, v in pairs({...}) do acc = acc..v end
-  return acc..s..module.reset
+  for _, v in pairs({...}) do acc = acc .. v end
+  return acc .. s .. module.reset
 end
 
 return module

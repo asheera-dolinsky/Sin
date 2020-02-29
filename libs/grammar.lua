@@ -21,41 +21,25 @@ local helpers = require 'helpers'
 local symbols = require 'symbols'
 
 local function identifier_transformer(value)
-  local base = { symbol = symbols.identifier, value = value }
+  local base = {symbol = symbols.identifier, value = value}
   local head = helpers.head(value)
-  if head == "'" then
-    return { symbol = symbols.quotation, value = base }
-  end
+  if head == "'" then return {symbol = symbols.quotation, value = base} end
   return base
 end
 
-local function number_transformer(value)
-  return { symbol = symbols.number, value = value }
-end
+local function number_transformer(value) return {symbol = symbols.number, value = value} end
 
-local function left_paren_transformer(value)
-  return { symbol = symbols.left_paren, value = value }
-end
+local function left_paren_transformer(value) return {symbol = symbols.left_paren, value = value} end
 
-local function right_paren_transformer(value)
-  return { symbol = symbols.right_paren, value = value }
-end
+local function right_paren_transformer(value) return {symbol = symbols.right_paren, value = value} end
 
-local function left_brace_transformer(value)
-  return { symbol = symbols.left_brace, value = value }
-end
+local function left_brace_transformer(value) return {symbol = symbols.left_brace, value = value} end
 
-local function right_brace_transformer(value)
-  return { symbol = symbols.right_brace, value = value }
-end
+local function right_brace_transformer(value) return {symbol = symbols.right_brace, value = value} end
 
-local function whitespace_transformer(value)
-  return { symbol = symbols.whitespace, value = value }
-end
+local function whitespace_transformer(value) return {symbol = symbols.whitespace, value = value} end
 
-local function ignore_transformer(value)
-  return { symbol = symbols.ignore, value = value }
-end
+local function ignore_transformer(value) return {symbol = symbols.ignore, value = value} end
 
 -- delimiters
 local ws = re.compile '%s'
@@ -78,18 +62,17 @@ local lowercase_e = peg.P 'e'
 local uppercase_e = peg.P 'E'
 
 -- combinators
-local delimiter_tokens = left_paren_token +
-  right_paren_token +
-  left_brace_token +
-  right_brace_token +
-  left_curly_token +
-  right_curly_token
+local delimiter_tokens =
+    left_paren_token + right_paren_token + left_brace_token + right_brace_token + left_curly_token +
+        right_curly_token
 
 local whitespace_token = ws ^ 1
 
-local decimal_token = (digit ^ 1) * ((dot * (digit ^ 0)) ^ -1) * (((lowercase_e + uppercase_e) * (digit ^ 1)) ^ -1)
+local decimal_token = (digit ^ 1) * ((dot * (digit ^ 0)) ^ -1) *
+                          (((lowercase_e + uppercase_e) * (digit ^ 1)) ^ -1)
 local hexadecimal_token = hexadecimal_signifier * ((digit + lowercase_a2f + uppercase_a2f) ^ 1)
-local number_token = ((dash ^ -1) * (hexadecimal_token + decimal_token)) * #(whitespace_token + delimiter_tokens + -1)
+local number_token = ((dash ^ -1) * (hexadecimal_token + decimal_token)) *
+                         #(whitespace_token + delimiter_tokens + -1)
 
 local identifier_token = (match_all - (whitespace_token + delimiter_tokens + -1)) ^ 1
 
@@ -101,9 +84,7 @@ local identifier = identifier_token / identifier_transformer
 
 local program_grammar = whitespace + left_paren + left_brace + number + identifier
 
-local function segment_transformer(value)
-  return { symbol = symbols.segment, value = value }
-end
+local function segment_transformer(value) return {symbol = symbols.segment, value = value} end
 
 -- combinators
 local template_delimiter_tokens = right_brace_token
