@@ -1,3 +1,3 @@
 #!/bin/bash
 
-lua-format ./*.lua ./**/*.lua -i -c .luaformatrc
+lua-format ./*.lua ./**/*.lua -i -v -c .luaformatrc
